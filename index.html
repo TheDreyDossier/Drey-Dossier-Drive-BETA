@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DD-1 // Data Sovereignty Drive</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+        :root {
+            --black: #0a0a0a;
+            --charcoal: #1a1a1a;
+            --teal: #00d4aa;
+            --teal-dark: #00a385;
+            --amber: #ffb347;
+            --amber-bright: #ffd700;
+            --cream: #f4f1e8;
+            --gray: #4a4a4a;
+            --red: #ff4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', 'Space Mono', monospace;
+            background: var(--black);
+            color: var(--cream);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .crt-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: var(--black);
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .crt-overlay::before {
+            content: "";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), 
+            linear-gradient(
+                90deg, 
+                rgba(0, 212, 170, 0.03), 
+                rgba(255, 179, 71, 0.02), 
+                rgba(0, 212, 170, 0.03)
+            );
+            background-size: 100% 3px, 4px 100%;
+            z-index: 2;
+        }
+
+        .crt-overlay::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            z-index: 1;
+        }
+
+        .screen-flicker {
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.97; }
+        }
+
+        .boot-sequence {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--black);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3rem;
+            overflow-y: auto;
+        }
+
+        .boot-line {
+            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+            color: var(--teal);
+            text-shadow: 0 0 5px rgba(0, 212, 170, 0.5);
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .boot-line.success::before {
+            content: "[ ✓ ] ";
+            color: var(--teal);
+        }
+
+        .boot-line.warning::before {
+            content: "[ ! ] ";
+            color: var(--amber);
+        }
+
+        .boot-line.critical::before {
+            content: "[ X ] ";
+            color: var(--red);
+        }
+
+        .boot-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--amber-bright);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+            letter-spacing: 0.1em;
+        }
+
+        .main-interface {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            border-bottom: 2px solid var(--teal);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--amber-bright);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 0.9rem;
+            color: var(--teal);
+            letter-spacing: 0.15em;
+        }
+
+        .serial {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            font-size: 0.75rem;
+            color: var(--gray);
+            text-align: right;
+        }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .nav-card {
+            background: linear-gradient(135deg, var(--charcoal) 0%, #0d0d0d 100%);
+            border: 1px solid var(--teal);
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 170, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-card:hover::before {
+            left: 100%;
+        }
+
+        .nav-card:hover {
+            border-color: var(--amber);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-card.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .nav-card.locked:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .card-number {
+            font-size: 0.75rem;
+            color: var(--amber);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--cream);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        .lock-icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: var(--red);
+            font-size: 1.2rem;
+        }
+
+        .content-section {
+            display: none;
+            animation: slideIn 0.4s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .back-button {
+            background: transparent;
+            border: 1px solid var(--teal);
+            color: var(--teal);
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05em;
+        }
+
+        .back-button:hover {
+            background: var(--teal);
+            color: var(--black);
+        }
+
+        .section-header {
+            font-size: 1.5rem;
+            color: var(--amber-bright);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--teal);
+        }
+
+        .article-list {
+            margin-top: 1.5rem;
+        }
+
+        .article-item {
+            background: var(--charcoal);
+            border-left: 3px solid var(--teal);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .article-item:hover {
+            background: #1f1f1f;
+            border-left-color: var(--amber);
+            transform: translateX(5px);
+        }
+
+        .article-title {
+            font-size: 1rem;
+            color: var(--cream);
+            margin-bottom: 0.5rem;
+        }
+
+        .article-meta {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+
+        .broker-list {
+            margin-top: 1.5rem;
+        }
+
+        .broker-item {
+            background: var(--charcoal);
+            border: 1px solid var(--gray);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .broker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .broker-name {
+            font-size: 1rem;
+            color: var(--cream);
+            font-weight: 600;
+        }
+
+        .threat-badge {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 2px;
+            font-weight: 600;
+        }
+
+        .threat-high {
+            background: var(--red);
+            color: var(--black);
+        }
+
+        .threat-medium {
+            background: var(--amber);
+            color: var(--black);
+        }
+
+        .threat-low {
+            background: var(--teal);
+            color: var(--black);
+        }
+
+        .broker-desc {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .broker-action {
+            background: transparent;
+            border: 1px solid var(--teal);
+            color: var(--teal);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .broker-action:hover {
+            background: var(--teal);
+            color: var(--black);
+        }
+
+        .progress-bar {
+            margin: 2rem 0;
+            background: var(--charcoal);
+            height: 30px;
+            border: 1px solid var(--teal);
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--teal), var(--teal-dark));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.85rem;
+            color: var(--cream);
+            font-weight: 600;
+        }
+
+        .guide-list {
+            margin-top: 1.5rem;
+        }
+
+        .guide-item {
+            background: var(--charcoal);
+            border-left: 3px solid var(--amber);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .guide-title {
+            font-size: 1rem;
+            color: var(--cream);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .guide-desc {
+            font-size: 0.85rem;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        .restricted-message {
+            background: var(--charcoal);
+            border: 2px solid var(--red);
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .restricted-title {
+            font-size: 1.5rem;
+            color: var(--red);
+            margin-bottom: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+
+        .restricted-quote {
+            font-size: 1rem;
+            color: var(--cream);
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .restricted-text {
+            font-size: 0.9rem;
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        .circuit-trace {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--teal), transparent);
+            animation: trace 3s linear infinite;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        @keyframes trace {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @media (max-width: 768px) {
+            .boot-sequence, .main-interface {
+                padding: 1.5rem;
+            }
+
+            .logo {
+                font-size: 1.3rem;
+            }
+
+            .serial {
+                position: static;
+                margin-top: 1rem;
+                text-align: left;
+            }
+
+            .nav-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-container screen-flicker">
+        <div class="crt-overlay"></div>
+        <div class="circuit-trace"></div>
+
+        <div class="boot-sequence" id="bootSequence">
+            <div class="boot-header">DD-1 // SYSTEM INITIALIZATION</div>
+        </div>
+
+        <div class="main-interface" id="mainInterface">
+            <div class="header">
+                <div class="logo">THE DREY DOSSIER DRIVE</div>
+                <div class="tagline">DD-1 // DATA SOVEREIGNTY DRIVE</div>
+                <div class="serial">
+                    UNIT 0734 OF 10,000<br>
+                    OFFLINE MODE // NO TELEMETRY<br>
+                    thedreydossier.substack.com
+                </div>
+            </div>
+
+            <div id="homeView">
+                <div class="nav-grid">
+                    <div class="nav-card" onclick="showSection('dossier')">
+                        <div class="card-number">01</div>
+                        <div class="card-title">THE DOSSIER FILES</div>
+                        <div class="card-desc">Complete investigative archive. Oracle. Ellison. Infrastructure. Power. Who TF Am I Working For? The Merger That Needed a War. Exclusive unpublished material.</div>
+                    </div>
+
+                    <div class="nav-card" onclick="showSection('optout')">
+                        <div class="card-number">02</div>
+                        <div class="card-title">DATA BROKER OPT-OUT KIT</div>
+                        <div class="card-desc">Interactive removal tool for 47 data broker companies. Reclaim your name, address, phone number, employment history. Progress tracking included.</div>
+                    </div>
+
+                    <div class="nav-card" onclick="showSection('osint')">
+                        <div class="card-number">03</div>
+                        <div class="card-title">OSINT KIT</div>
+                        <div class="card-desc">Learn to investigate power. SEC filings. Government contracts. Campaign finance. Shell companies. The same tools Drey uses in her reporting.</div>
+                    </div>
+
+                    <div class="nav-card locked" onclick="showSection('restricted')">
+                        <div class="card-number">04</div>
+                        <div class="card-title">RESTRICTED</div>
+                        <div class="card-desc">Unauthorized access. Encrypted content. Future drops. This directory updates.</div>
+                        <div class="lock-icon">🔒</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section" id="dossierSection">
+                <button class="back-button" onclick="showHome()">← BACK TO MAIN</button>
+                <div class="section-header">01 // THE DOSSIER FILES</div>
+                <p style="color: var(--gray); line-height: 1.6; margin-bottom: 2rem;">
+                    The complete Drey Dossier investigative archive, formatted for offline reading with original annotations. 
+                    This reporting exists in 10,000 homes on 10,000 devices. It cannot be deplatformed.
+                </p>
+
+                <div class="article-list">
+                    <div class="article-item">
+                        <div class="article-title">Who TF Am I Working For? (Complete Series)</div>
+                        <div class="article-meta">Investigation • Oracle Cloud Infrastructure • TikTok</div>
+                    </div>
+                    <div class="article-item">
+                        <div class="article-title">The Merger That Needed a War</div>
+                        <div class="article-meta">Investigation • Paramount-Skydance • Media Consolidation</div>
+                    </div>
+                    <div class="article-item">
+                        <div class="article-title">The Uncle Larry Doctrine</div>
+                        <div class="article-meta">Analysis • Larry Ellison • Surveillance Philosophy</div>
+                    </div>
+                    <div class="article-item">
+                        <div class="article-title">Underground: Oracle's Israeli Data Centers</div>
+                        <div class="article-meta">Investigation • Infrastructure • Geopolitics</div>
+                    </div>
+                    <div class="article-item">
+                        <div class="article-title">What I Couldn't Publish, and Why</div>
+                        <div class="article-meta">Exclusive • Editorial Process • Constraints</div>
+                    </div>
+                    <div class="article-item" style="border-left-color: var(--red);">
+                        <div class="article-title">🔒 ENCRYPTED FILE 01</div>
+                        <div class="article-meta">Decryption key will be revealed in future episode</div>
+                    </div>
+                    <div class="article-item" style="border-left-color: var(--red);">
+                        <div class="article-title">🔒 ENCRYPTED FILE 02</div>
+                        <div class="article-meta">Decryption key will be revealed in future episode</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section" id="optoutSection">
+                <button class="back-button" onclick="showHome()">← BACK TO MAIN</button>
+                <div class="section-header">02 // DATA BROKER OPT-OUT KIT</div>
+                <p style="color: var(--gray); line-height: 1.6; margin-bottom: 1rem;">
+                    47 companies are selling your personal information right now. Your name, home address, phone number, 
+                    family members, employment history, and more. This tool walks you through removing it all.
+                </p>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    <div class="progress-text" id="progressText">0% RECLAIMED</div>
+                </div>
+
+                <div class="broker-list">
+                    <div class="broker-item">
+                        <div class="broker-header">
+                            <div class="broker-name">Spokeo</div>
+                            <div class="threat-badge threat-high">HIGH THREAT</div>
+                        </div>
+                        <div class="broker-desc">
+                            Aggregates data from social networks, public records, and phone directories. Sells detailed profiles 
+                            including relatives, associates, address history, and phone numbers.
+                        </div>
+                        <button class="broker-action" onclick="markComplete(this)">VIEW OPT-OUT GUIDE</button>
+                    </div>
+
+                    <div class="broker-item">
+                        <div class="broker-header">
+                            <div class="broker-name">Acxiom / LiveRamp</div>
+                            <div class="threat-badge threat-high">HIGH THREAT</div>
+                        </div>
+                        <div class="broker-desc">
+                            Powers Oracle's advertising data pipeline. Maintains profiles on 700+ million consumers worldwide. 
+                            Tracks online and offline behavior for targeted advertising.
+                        </div>
+                        <button class="broker-action" onclick="markComplete(this)">VIEW OPT-OUT GUIDE</button>
+                    </div>
+
+                    <div class="broker-item">
+                        <div class="broker-header">
+                            <div class="broker-name">Whitepages</div>
+                            <div class="threat-badge threat-high">HIGH THREAT</div>
+                        </div>
+                        <div class="broker-desc">
+                            Publicly accessible people search engine. Displays current and past addresses, phone numbers, 
+                            age, relatives, and neighbors. High visibility risk.
+                        </div>
+                        <button class="broker-action" onclick="markComplete(this)">VIEW OPT-OUT GUIDE</button>
+                    </div>
+
+                    <div class="broker-item">
+                        <div class="broker-header">
+                            <div class="broker-name">BeenVerified</div>
+                            <div class="threat-badge threat-medium">MEDIUM THREAT</div>
+                        </div>
+                        <div class="broker-desc">
+                            Background check service selling access to criminal records, traffic violations, social media profiles, 
+                            and contact information. Used by employers and landlords.
+                        </div>
+                        <button class="broker-action" onclick="markComplete(this)">VIEW OPT-OUT GUIDE</button>
+                    </div>
+
+                    <div class="broker-item">
+                        <div class="broker-header">
+                            <div class="broker-name">LexisNexis</div>
+                            <div class="threat-badge threat-high">HIGH THREAT</div>
+                        </div>
+                        <div class="broker-desc">
+                            Enterprise data broker serving insurance, legal, and government sectors. Maintains comprehensive 
+                            consumer profiles used for risk assessment and investigation.
+                        </div>
+                        <button class="broker-action" onclick="markComplete(this)">VIEW OPT-OUT GUIDE</button>
+                    </div>
+
+                    <div class="broker-item">
+                        <div class="broker-header">
+                            <div class="broker-name">TruePeopleSearch</div>
+                            <div class="threat-badge threat-medium">MEDIUM THREAT</div>
+                        </div>
+                        <div class="broker-desc">
+                            Free people search site. Makes personal information easily accessible without registration. 
+                            Often first result in Google searches for your name.
+                        </div>
+                        <button class="broker-action" onclick="markComplete(this)">VIEW OPT-OUT GUIDE</button>
+                    </div>
+
+                    <p style="color: var(--gray); margin-top: 2rem; font-size: 0.9rem;">
+                        + 41 additional data brokers with step-by-step removal guides included in full kit
+                    </p>
+                </div>
+            </div>
+
+            <div class="content-section" id="osintSection">
+                <button class="back-button" onclick="showHome()">← BACK TO MAIN</button>
+                <div class="section-header">03 // OSINT KIT</div>
+                <p style="color: var(--gray); line-height: 1.6; margin-bottom: 2rem;">
+                    Investigative literacy. These are the publicly available tools and databases Drey uses to trace 
+                    corporate power. Learn to ask the questions you were never taught to ask.
+                </p>
+
+                <div class="guide-list">
+                    <div class="guide-item">
+                        <div class="guide-title">Reading SEC EDGAR Filings</div>
+                        <div class="guide-desc">
+                            How to trace corporate ownership, executive compensation, and business relationships through 
+                            10-K annual reports, 8-K event disclosures, and DEF 14A proxy statements. Includes real examples 
+                            from Oracle's filings.
+                        </div>
+                    </div>
+
+                    <div class="guide-item">
+                        <div class="guide-title">Tracking Government Contracts</div>
+                        <div class="guide-desc">
+                            Navigate USAspending.gov, FPDS, and SAM.gov to find federal contracts by company, agency, or dollar amount. 
+                            Understand NAICS codes, contract types, and classification levels.
+                        </div>
+                    </div>
+
+                    <div class="guide-item">
+                        <div class="guide-title">Campaign Finance Research</div>
+                        <div class="guide-desc">
+                            Use FEC.gov to track political donations from executives and corporate PACs. Follow the money from 
+                            tech companies to congressional campaigns and super PACs.
+                        </div>
+                    </div>
+
+                    <div class="guide-item">
+                        <div class="guide-title">Finding Shell Companies</div>
+                        <div class="guide-desc">
+                            Search state corporate registries (Delaware, Nevada, Wyoming) to uncover subsidiary networks, 
+                            registered agents, and beneficial ownership structures.
+                        </div>
+                    </div>
+
+                    <div class="guide-item">
+                        <div class="guide-title">LinkedIn as Research Tool</div>
+                        <div class="guide-desc">
+                            Advanced techniques for mapping corporate networks through employee movements, job titles, 
+                            and professional connections. Building organizational charts from public profiles.
+                        </div>
+                    </div>
+
+                    <div class="guide-item">
+                        <div class="guide-title">Introduction to Geospatial Analysis</div>
+                        <div class="guide-desc">
+                            Using satellite imagery, property records, and IP geolocation to identify physical infrastructure. 
+                            Finding data centers, corporate campuses, and government facilities.
+                        </div>
+                    </div>
+
+                    <div class="guide-item" style="border-left-color: var(--amber-bright);">
+                        <div class="guide-title">🔍 CASE STUDY: Tracing Oracle's Contract Web</div>
+                        <div class="guide-desc">
+                            Exclusive walkthrough of how Drey traced Oracle's federal contracts from public procurement data 
+                            to classified AI systems. Step-by-step methodology, dead ends encountered, and breakthroughs made. 
+                            A teaching document on investigating invisible infrastructure.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section" id="restrictedSection">
+                <button class="back-button" onclick="showHome()">← BACK TO MAIN</button>
+                <div class="section-header">04 // RESTRICTED</div>
+
+                <div class="restricted-message">
+                    <div class="restricted-title">⚠ UNAUTHORIZED ACCESS ⚠</div>
+                    <div class="restricted-quote">
+                        "The most important infrastructure being built right now is invisible. 
+                        Cloud contracts, data pipelines, AI authorization agreements — these are the systems 
+                        that determine who controls your health records, your financial data, your biometric information, 
+                        and the media you consume."
+                    </div>
+                    <div class="restricted-text">
+                        This directory is marked as restricted. You are reading this because you were curious enough to open it.
+                        <br><br>
+                        That curiosity is exactly what this drive was built to reward.
+                        <br><br>
+                        This folder will update. Future encrypted drops, hidden content, and material that rewards those 
+                        who refuse to accept that infrastructure should be invisible will appear here over time.
+                        <br><br>
+                        Downloadable update packs will be released on The Drey Dossier's Substack. This drive is a living document.
+                        <br><br>
+                        You own this hardware. No one is watching. Keep digging.
+                        <br><br>
+                        — Drey
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bootLines = [
+            { text: "DD-1 DATA SOVEREIGNTY DRIVE", type: "", delay: 100 },
+            { text: "Firmware v2.1.0 | Build 20260115", type: "", delay: 200 },
+            { text: "", type: "", delay: 300 },
+            { text: "INITIATING NETWORK ISOLATION PROTOCOL...", type: "", delay: 500 },
+            { text: "", type: "", delay: 600 },
+            { text: "Severing Wi-Fi connection", type: "success", delay: 800 },
+            { text: "Disabling Bluetooth telemetry", type: "success", delay: 1000 },
+            { text: "Blocking DNS requests", type: "success", delay: 1200 },
+            { text: "Terminating background sync services", type: "success", delay: 1400 },
+            { text: "Disabling location services", type: "success", delay: 1600 },
+            { text: "Severing cloud analytics", type: "success", delay: 1800 },
+            { text: "Blocking advertising trackers", type: "success", delay: 2000 },
+            { text: "Terminating telemetry uplinks", type: "success", delay: 2200 },
+            { text: "", type: "", delay: 2400 },
+            { text: "DEVICE STATUS: OFFLINE", type: "warning", delay: 2600 },
+            { text: "NETWORK STATUS: ISOLATED", type: "warning", delay: 2700 },
+            { text: "TELEMETRY: DISABLED", type: "warning", delay: 2800 },
+            { text: "", type: "", delay: 2900 },
+            { text: "Loading investigative archive...", type: "success", delay: 3100 },
+            { text: "Loading data broker opt-out kit...", type: "success", delay: 3300 },
+            { text: "Loading OSINT toolkit...", type: "success", delay: 3500 },
+            { text: "Loading restricted directory...", type: "critical", delay: 3700 },
+            { text: "", type: "", delay: 3900 },
+            { text: "SYSTEM READY", type: "success", delay: 4100 },
+            { text: "This device is yours. No one is watching.", type: "", delay: 4300 },
+        ];
+
+        let bootContainer = document.getElementById('bootSequence');
+        let currentLine = 0;
+
+        function displayBootLine() {
+            if (currentLine < bootLines.length) {
+                const line = bootLines[currentLine];
+                const lineElement = document.createElement('div');
+                lineElement.className = `boot-line ${line.type}`;
+                lineElement.textContent = line.text;
+                lineElement.style.animationDelay = '0s';
+                bootContainer.appendChild(lineElement);
+                
+                currentLine++;
+                setTimeout(displayBootLine, line.delay);
+            } else {
+                setTimeout(() => {
+                    document.getElementById('bootSequence').style.display = 'none';
+                    document.getElementById('mainInterface').style.display = 'block';
+                }, 1000);
+            }
+        }
+
+        displayBootLine();
+
+        function showSection(sectionName) {
+            document.getElementById('homeView').style.display = 'none';
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionName + 'Section').classList.add('active');
+        }
+
+        function showHome() {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById('homeView').style.display = 'block';
+        }
+
+        let completedBrokers = 0;
+        const totalBrokers = 47;
+
+        function markComplete(button) {
+            if (!button.classList.contains('completed')) {
+                button.classList.add('completed');
+                button.textContent = '✓ OPTED OUT';
+                button.style.background = 'var(--teal)';
+                button.style.color = 'var(--black)';
+                button.style.borderColor = 'var(--teal)';
+                
+                completedBrokers++;
+                const percentage = Math.round((completedBrokers / totalBrokers) * 100);
+                document.getElementById('progressFill').style.width = percentage + '%';
+                document.getElementById('progressText').textContent = percentage + '% RECLAIMED';
+            }
+        }
+    </script>
+</body>
+</html>
